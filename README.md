@@ -42,7 +42,7 @@ The dataset includes details about:
 1. Place the dataset file in the data directory and update the file path in the script.
 2. Run the analysis script:
    ```bash
-   python analysis.py
+   create vertual enviroment and run it
    ```
 
 ## Results
