@@ -4,34 +4,43 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
 def perform_clustering(file_path):
+        # Calculate total TCP retransmission (downlink + uplink) for analysis
+    data['Total TCP Retransmission (Bytes)'] = data['TCP DL Retrans. Vol (Bytes)'] + data['TCP UL Retrans. Vol (Bytes)']
+
+    # Group data by 'Handset Type' and compute average TCP retransmission
+    tcp_retransmission = data.groupby('Handset Type')['Total TCP Retransmission (Bytes)'].mean()
+
+    # Display the result sorted by retransmission values
+    tcp_retransmission.sort_values(ascending=False).head()
+
     # Load the dataset
     data = pd.read_csv(file_path)
 
-    # Select metrics for clustering
-    metrics = data[["TCP_Retransmission", "RTT", "Throughput"]]
+    # Selecting relevant experience metrics for clustering
+    experience_metrics = data[["Total DL (Bytes)", "Total UL (Bytes)", "Avg RTT DL (ms)", 
+                            "Avg RTT UL (ms)", "TCP DL Retrans. Vol (Bytes)", 
+                            "TCP UL Retrans. Vol (Bytes)"]]
 
-    # Fill missing values
-    metrics = metrics.fillna(metrics.mean())
+    # Handling missing values (fill with mean)
+    experience_metrics.fillna(experience_metrics.mean(), inplace=True)
 
-    # Standardize the data
+    # Feature scaling
     scaler = StandardScaler()
-    metrics_scaled = scaler.fit_transform(metrics)
+    scaled_metrics = scaler.fit_transform(experience_metrics)
 
-    # Apply K-means clustering
+    # Apply k-means clustering
     kmeans = KMeans(n_clusters=3, random_state=42)
-    data["Cluster"] = kmeans.fit_predict(metrics_scaled)
+    clusters = kmeans.fit_predict(scaled_metrics)
 
-    # Analyze clusters
-    cluster_summary = data.groupby("Cluster").mean()
+    # Add cluster labels to the original data
+    data["Cluster"] = clusters
 
-    # Visualize clusters
-    plt.figure(figsize=(10, 6))
-    plt.scatter(metrics_scaled[:, 0], metrics_scaled[:, 1], c=data["Cluster"], cmap="viridis", alpha=0.5)
-    plt.title("K-Means Clustering (k=3)")
-    plt.xlabel("Scaled TCP Retransmission")
-    plt.ylabel("Scaled RTT")
-    plt.colorbar(label="Cluster")
-    plt.tight_layout()
-    plt.show()
+    # Compute cluster characteristics
+    cluster_summary = data.groupby("Cluster")[
+        ["Total DL (Bytes)", "Total UL (Bytes)", "Avg RTT DL (ms)", 
+        "Avg RTT UL (ms)", "TCP DL Retrans. Vol (Bytes)", 
+        "TCP UL Retrans. Vol (Bytes)"]
+    ].mean()
 
-    return cluster_summary
+    cluster_summary
+
